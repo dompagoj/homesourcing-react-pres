@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <title>Home sourcing presentation</title>
+
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/custom.css" />
+    <link rel="stylesheet" href="dist/theme/black.css" />
+
+    <!-- Theme used for syntax highlighted code -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h4>State in react using hooks</h2>
+            <ul>
+              <li class="fragment">Server state</li>
+              <li class="fragment">Client state</li>
+            </ul>
+        </section>
+
+        <section>
+          <h6>Server state</h6>
+          <p>Simplest example</p>
+          <pre data-id="code-animation">
+              <code style="font-size: 1rem;"  data-trim data-noescape class="hljs" data-line-numbers="2-4|6-16|18-21">
+                <script type="text/template">
+                  export const SimplestExmaple = () => {
+                    const [users, setUsers] = useState<string[]>([])
+                    const [isLoading, setIsLoading] = useState(true)
+                    const [error, setError] = useState<any>(null)
+                  
+                    useEffect(() => {
+                      getUsers()
+                        .then(users => {
+                          setUsers(users)
+                          setIsLoading(false)
+                        })
+                        .catch(err => {
+                          setError(err)
+                          setIsLoading(false)
+                        })
+                    }, [])
+                  
+                    if (isLoading) return <>{/* Spinner */}</>
+                    if (error) return <>{/* Show error */}</>
+                  
+                    return <UserList users={users} />
+                  }
+              </script>
+              </code>
+            </pre>
+        </section>
+
+        <section>
+          <p>Using a custom hook</p>
+          <pre data-id="code-animation">
+              <code style="font-size: 1rem;"  data-trim data-noescape class="hljs">
+                <script type="text/template">
+                  export function useGet<T>(func: () => Promise<T>) {
+                    const [data, setData] = useState<T>()
+                    const [isLoading, setIsLoading] = useState(true)
+                    const [error, setError] = useState<any>(null)
+
+                    useEffect(() => {
+                      func()
+                        .then(data => {
+                          setData(data)
+                          setIsLoading(false)
+                        })
+                        .catch(err => {
+                          setError(err)
+                          setIsLoading(false)
+                        })
+                    }, [])
+
+                    return { data: data as T, isLoading, error }
+                  }
+              </script>
+              </code>
+            </pre>
+        </section>
+
+        <section>
+          <p>Using a custom hook</p>
+          <pre data-id="code-animation">
+              <code style="font-size: 1rem;"  data-trim data-noescape class="hljs">
+                <script type="text/template">
+                  export const SimpleExampleWithCustomHook = () => {
+                    const { data: users, error, isLoading } = useGet(getUsers)
+                  
+                    if (isLoading) return <>{/* Spinner */}</>
+                    if (error) return <>{/* Show error */}</>
+                  
+                    return <UserList users={users} />
+                  }
+              </script>
+              </code>
+            </pre>
+        </section>
+
+        <section>
+          <p>Mutation</p>
+          <pre class="fragment">
+            <code style="font-size: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const SimpleExampleWithMutation = () => {
+                  const { data: users, error, isLoading } = useGet(getUsers)
+                
+                  if (isLoading) return <>{/* Spinner */}</>
+                  if (error) return <>{/* Show error */}</>
+                
+                  const onUserDelete = async (user: string) => {
+                    await removeUser(user)
+                    // Somehow refetch users
+                    // Show loading state
+                    // Show error state
+                  }
+                
+                  return <UserList users={users} onDelete={onUserDelete} />
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>React query</h4>
+
+          <ul class="fragment">
+            <li class="fragment scrollable-slide">
+              React Query is often described as the missing data-fetching library for React, but in more technical
+              terms, it makes fetching, caching, synchronizing and updating server state in your React applications a
+              breeze.
+            </li>
+            <li class="fragment scrollable-slide">
+              Out of the box, React applications do not come with an opinionated way of fetching or updating data from
+              your components so developers end up building their own ways of fetching data. This usually means cobbling
+              together component-based state and effect using React hooks, or using more general purpose state
+              management libraries to store and provide asynchronous data throughout their apps.
+            </li>
+            <li class="fragment scrollable-slide">
+              While most traditional state management libraries are great for working with client state, they are not so
+              great at working with async or server state. This is because server state is totally different.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>Previous example with react query</h4>
+          <pre class="fragment">
+            <code style="font-size: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const SimpleExampleWithReactQuery = () => {
+                  const { data: users, isLoading, isError } = useQuery('users', getUsers)
+                
+                  if (isLoading) return <>{/* Spinner */}</>
+                  if (isError) return <>{/* Show error */}</>
+                
+                  return <UserList users={users!} />
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>Mutation with react query</h4>
+          <pre class="fragment">
+            <code style="font-size: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const SimpleExampleWithReactQueryMutation = () => {
+                  const queryClient = useQueryClient()
+                  const { data: users, isLoading, isError } = useQuery('users', getUsers)
+                
+                  const {
+                    mutateAsync,
+                    isLoading: mutationLoading,
+                    isError: mutationError,
+                  } = useMutation(removeUser, {
+                    onSuccess: () => queryClient.invalidateQueries('users'),
+                  })
+                
+                  if (isLoading) return <>{/* Spinner */}</>
+                  if (isError) return <>{/* Show error */}</>
+                
+                  return <UserList users={users!} onDelete={mutateAsync} />
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>Fetch one</h4>
+          <pre class="fragment">
+            <code style="font-size: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const FetchOneExampleWithReactQuery = () => {
+                  const queryClient = useQueryClient()
+                
+                  const { id } = useParams<any>()
+                  const { data: user, isLoading, isError } = useQuery(['users', id], () => getUser(id))
+                
+                  if (isLoading) return <>{/* Spinner */}</>
+                  if (isError) return <>{/* Show error */}</>
+                
+                  const invalidate = () => queryClient.invalidateQueries(['users', id])
+                
+                  return <UserProfile user={user!} />
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>Client state</h4>
+          <ul>
+            <li class="fragment">MobX</li>
+            <li class="fragment">jotai</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>jotai example</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                const countAtom = atom(0)
+
+                export const JotaiExample = () => {
+                  return (
+                    <>
+                      <DisplayCounter />
+                      <IncrementCounter />
+                      <SomeOtherComponent />
+                    </>
+                  )
+                }
+                
+                const DisplayCounter = () => {
+                  const [count] = useAtom(countAtom)
+                
+                  console.log('Display counter render')
+                
+                  return <span>Counter: {count}</span>
+                }
+                
+                const IncrementCounter = () => {
+                  const [, setCount] = useAtom(countAtom)
+                
+                  console.log('Increment counter rerender')
+                
+                  return (
+                    <div>
+                      <button onClick={() => setCount(c => c + 1)}>Increment</button>
+                    </div>
+                  )
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>jotai example</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                const countAtom = atom(0)
+                const incrementCountAtom = atom(null, (get, set) => set(countAtom, get(countAtom) + 1))
+                
+                export const JotaiExample2 = () => {
+                  return (
+                    <>
+                      <DisplayCounter />
+                      <IncrementCounter />
+                      <SomeOtherComponent />
+                    </>
+                  )
+                }
+                
+                const DisplayCounter = () => {
+                  const [count] = useAtom(countAtom)
+                
+                  console.log('Display counter render')
+                
+                  return <span>Counter: {count}</span>
+                }
+                
+                const IncrementCounter = () => {
+                  const [, increment] = useAtom(incrementCountAtom)
+                
+                  console.log('Increment counter rerender')
+                
+                  return (
+                    <div>
+                      <button onClick={increment}>Increment</button>
+                    </div>
+                  )
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>Forms</h4>
+          <ul>
+            <li class="fragment">React hook form</li>
+            <li class="fragment">Zod validation library</li>
+          </ul>
+        </section>
+
+        <section>
+          <h4>Form api</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                const schema = z
+                .object({
+                  username: z.string().nonempty({ message: 'Required' }),
+                  password: z.string().nonempty(),
+                  confirmPassword: z.string().nonempty(),
+                })
+                .refine(form => form.password === form.confirmPassword, {
+                  message: 'Passwords do not match',
+                  path: ['password'],
+                })
+              
+              export type FormExampleType = z.infer<typeof schema>
+              
+              export const FormExample: AppFormComponent<FormExampleType> = ({ onSubmit }) => {
+                const form = useZodForm(schema)
+              
+                return (
+                  <AppForm form={form} onSubmit={onSubmit}>
+                    <FormTextField name="username" />
+                    <FormTextField name="password" type="password" />
+                    <FormTextField name="confirmPassword" type="password" />
+              
+                    <FormSubmitButton />
+                  </AppForm>
+                )
+              }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>App form impl</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export function useZodForm<T extends ZodSchema<any, any>>(
+                  schema: T,
+                  formOpts?: UseFormProps
+                ): UseFormReturn<z.infer<typeof schema>> {
+                  const form = useForm({
+                    resolver: zodResolver(schema),
+                    ...formOpts,
+                  })
+                
+                  return form
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>App form impl</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const AppForm = <T,>({
+                  form,
+                  onSubmit,
+                  children,
+                  hasInitialValues = false,
+                  ...formProps
+                }: Props<T> &
+                  Omit<React.DetailedHTMLProps<React.FormHTMLAttributes<HTMLFormElement>, HTMLFormElement>, 'onSubmit'>) => {
+                  return (
+                    <FormProvider {...form}>
+                      <form {...formProps} onSubmit={onSubmit && form.handleSubmit(onSubmit)}>
+                        {children}
+                      </form>
+                    </FormProvider>
+                  )
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>App form impl</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const AppForm = <T,>({
+                  form,
+                  onSubmit,
+                  children,
+                  hasInitialValues = false,
+                  ...formProps
+                }: Props<T> &
+                  Omit<React.DetailedHTMLProps<React.FormHTMLAttributes<HTMLFormElement>, HTMLFormElement>, 'onSubmit'>) => {
+                  return (
+                    <FormProvider {...form}>
+                      <form {...formProps} onSubmit={onSubmit && form.handleSubmit(onSubmit)}>
+                        {children}
+                      </form>
+                    </FormProvider>
+                  )
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>App form impl</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const AppForm = <T,>({
+                  form,
+                  onSubmit,
+                  children,
+                  hasInitialValues = false,
+                  ...formProps
+                }: Props<T> &
+                  Omit<React.DetailedHTMLProps<React.FormHTMLAttributes<HTMLFormElement>, HTMLFormElement>, 'onSubmit'>) => {
+                  return (
+                    <FormProvider {...form}>
+                      <form {...formProps} onSubmit={onSubmit && form.handleSubmit(onSubmit)}>
+                        {children}
+                      </form>
+                    </FormProvider>
+                  )
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>Individual components</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const FormTextField: FormField<React.HTMLProps<HTMLInputElement>> = ({
+                  name,
+                  label,
+                  defaultValue,
+                  ...inputProps
+                }) => {
+                  const { register } = useFormContext()
+                
+                  return (
+                    <div>
+                      <input {...register(name)} defaultValue={defaultValue} {...inputProps} />
+                      <ErrorLabel name={name} />
+                    </div>
+                  )
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>Individual components</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const FormSubmitButton: React.FC = () => {
+                  const { isSubmitting } = useFormState()
+                
+                  return (
+                    <div>
+                      <button type="submit">{isSubmitting ? 'Loading...' : 'Submit'}</button>
+                    </div>
+                  )
+                }
+            </script>
+            </code>
+          </pre>
+        </section>
+
+        <section>
+          <h4>Individual components</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                const useFormErrorState = (name: string) => {
+                  const { errors } = useFormState()
+                
+                  return {
+                    hasError: !!errors[name],
+                    message: errors[name]?.message,
+                  }
+                }
+
+                const ErrorLabel: React.FC<{ name: string }> = ({ name }) => {
+                  const { hasError, message } = useFormErrorState(name)
+                  if (!hasError) return null
+                
+                  return <div style={{ color: 'red' }}>{message}</div>
+                }  
+              </script>
+            </code>
+          </pre>
+          <img src="/assets/2021-10-27_15-23.png"/>
+        </section>
+
+        <section>
+          <h4>Combining the two</h4>
+          <pre>
+            <code style="font-size: 0.75rem; line-height: 1rem;"  data-trim data-noescape class="hljs">
+              <script type="text/template">
+                export const FormQueryExample = () => {
+                  const { mutateAsync } = useMutation(login, {
+                    onSuccess: () => {}, // Route to another screen
+                  })
+                
+                  return <FormExample onSubmit={mutateAsync} />
+                }
+
+                export async function login(form: FormExampleType) {
+                  await sleep(2000)
+                }
+              </script>
+            </code>
+          </pre>
+        </section>
+        
+        <section>Thanks</section>
+      </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script>
+      // More info about initialization & config:
+      // - https://revealjs.com/initialization/
+      // - https://revealjs.com/config/
+      Reveal.initialize({
+        hash: true,
+
+        // Learn about plugins: https://revealjs.com/plugins/
+        plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+      })
+    </script>
+  </body>
+</html>
